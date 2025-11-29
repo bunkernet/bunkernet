@@ -1,0 +1,684 @@
+networks:
+  service_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.1.0.0/16
+  tileserver_frontend:
+  pelias_frontend:
+  pelias_backend:
+  travel_frontend:
+  valhalla_backend:
+
+services:
+
+##################################################################
+##
+##   ____                           
+##  / ___|  ___ _ ____   _____ _ __ 
+##  \___ \ / _ \ '__\ \ / / _ \ '__|
+##   ___) |  __/ |   \ V /  __/ |   
+##  |____/ \___|_|    \_/ \___|_|   
+##                                  
+##   __  __                                                   _   
+##  |  \/  | __ _ _ __   __ _  __ _  ___ _ __ ___   ___ _ __ | |_ 
+##  | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \ '_ ` _ \ / _ \ '_ \| __|
+##  | |  | | (_| | | | | (_| | (_| |  __/ | | | | |  __/ | | | |_ 
+##  |_|  |_|\__,_|_| |_|\__,_|\__, |\___|_| |_| |_|\___|_| |_|\__|
+##                            |___/                               
+##                           
+##################################################################
+
+  pihole:
+    container_name: pihole                          # Name of the container
+    hostname: pihole                                # Hostname for the container
+    image: pihole/pihole:latest                     # Image to use for the container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.53                    # Static IP address assigned to this container
+    ports:
+      - "55:53/tcp"                                 # Mirror port 53 (DNS) with port 53 on the host (TCP)
+      - "55:53/udp"                                 # Mirror port 53 (DNS) with port 53 on the host (UDP)
+      - "8053:80/tcp"                                 # Map port 80 (Web interface) to port 85 on the host
+    # - "443:443/tcp"                               # Uncomment to enable HTTPS (port 443)
+    environment:
+      - WEBPASSWORD=changeme                        # Set the web interface password
+      - DNSMASQ_LISTENING=all                       # Allows DNS requests from all interfaces
+    volumes:
+      - './data/pihole/etc-pihole/:/etc/pihole/'    # Persistent storage for Pi-hole configuration
+      - './data/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/'  # Persistent storage for dnsmasq configuration
+    restart: unless-stopped                         # Restart policy for the container
+
+  nginxpm:
+    image: 'jc21/nginx-proxy-manager:latest'        # Image used for the Nginx Proxy Manager
+    restart: unless-stopped                         # Restart policy for the container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.80                     # Static IP address assigned to this container
+    ports:
+      - '80:80'                                     # Public HTTP Port for web traffic
+      - '443:443'                                   # Public HTTPS Port for secure web traffic
+      - '8801:81'                                   # Admin Web Port for accessing the management interface
+      # Add any other Stream port you want to expose
+      # - '21:21'   # Uncomment for FTP access if needed
+
+    # environment:
+      # Uncomment this if you want to change the location of
+      # the SQLite DB file within the container
+      # DB_SQLITE_FILE: "/data/database.sqlite"
+
+      # Uncomment this if IPv6 is not enabled on your host
+      # DISABLE_IPV6: 'true'
+      
+    environment:
+      INITIAL_ADMIN_EMAIL: bunkernet@example.com    # Initial admin email for setup
+      INITIAL_ADMIN_PASSWORD: changeme              # Initial admin password for setup
+
+    volumes:
+      - ./data/nginx:/data                          # Persistent storage for Nginx Proxy Manager data
+      - ./data/letsencrypt:/etc/letsencrypt         # Persistent storage for Let's Encrypt certificates
+
+  portainer:
+    container_name: portainer                       # Name of the Portainer container
+    image: portainer/portainer-ce:lts               # Image used for Portainer Community Edition
+    restart: always                                 # Restart policy for the container
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # Bind mount for Docker socket to control Docker
+      - ./data/portainer_data:/data                 # Persistent storage for Portainer data
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.2                     # Static IP address assigned to this container
+    ports:
+      - 9443:9443                                   # Public port for the Portainer web interface
+
+##################################################################  
+##
+##   __  __          _ _                         _   _____ _ _      
+##  |  \/  | ___  __| (_) __ _    __ _ _ __   __| | |  ___(_) | ___ 
+##  | |\/| |/ _ \/ _` | |/ _` |  / _` | '_ \ / _` | | |_  | | |/ _ \
+##  | |  | |  __/ (_| | | (_| | | (_| | | | | (_| | |  _| | | |  __/
+##  |_|  |_|\___|\__,_|_|\__,_|  \__,_|_| |_|\__,_| |_|   |_|_|\___|
+##                                                                  
+##   __  __                                                   _   
+##  |  \/  | __ _ _ __   __ _  __ _  ___ _ __ ___   ___ _ __ | |_ 
+##  | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \ '_ ` _ \ / _ \ '_ \| __|
+##  | |  | | (_| | | | | (_| | (_| |  __/ | | | | |  __/ | | | |_ 
+##  |_|  |_|\__,_|_| |_|\__,_|\__, |\___|_| |_| |_|\___|_| |_|\__|
+##                            |___/                               
+##  
+##################################################################
+
+  nextcloud:
+    image: nextcloud                                # Image used for Nextcloud
+    restart: always                                 # Restart policy for the container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.3                    # Static IP address assigned to this container
+    ports:
+      - 8802:80                                     # Map port 80 (Nextcloud) to port 8802 on the host
+    depends_on:
+      - redis                                       # Dependency on the Redis service
+      - nextcloud_db                                # Dependency on the Nextcloud database service
+    volumes:
+      - ./data/nextcloud:/var/www/html              # Persistent storage for Nextcloud data
+    environment:
+      - MYSQL_PASSWORD=Vg4tX0iNySkCwc16tP7RJNbcK8ctH  # Password for the Nextcloud database user
+      - MYSQL_DATABASE=nextcloud                    # Name of the database Nextcloud will use
+      - MYSQL_USER=nextcloud                        # User for the Nextcloud database
+      - MYSQL_HOST=nextcloud_db                     # Hostname of the Nextcloud database service
+
+  nextcloud_db:
+    image: mariadb:10.11                            # Image used for the MariaDB database
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.4                    # Static IP address assigned to this container
+    restart: always                                 # Restart policy for the container
+    command: --transaction-isolation=READ-COMMITTED # Database command to set transaction isolation level
+    volumes:
+      - ./data/nextcloud_db:/var/lib/mysql          # Persistent storage for Nextcloud MySQL data
+    environment:
+      - MYSQL_ROOT_PASSWORD=k5HGpwh03AxKGDULv5zFTMQdCTu1  # Root password for the MariaDB
+      - MYSQL_PASSWORD=Vg4tX0iNySkCwc16tP7RJNbcK8ctH     # Password for the Nextcloud database user
+      - MYSQL_DATABASE=nextcloud                    # Name of the Nextcloud database to be created
+      - MYSQL_USER=nextcloud                        # User for the Nextcloud database
+
+
+  redis:
+    image: redis:alpine                             # Image used for Redis, a lightweight version
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.5                    # Static IP address assigned to this container
+    restart: always                                 # Restart policy for the container
+
+  onlyoffice:
+    image: lscr.io/linuxserver/onlyoffice:latest    # Image for OnlyOffice document editing
+    container_name: onlyoffice                      # Name of the OnlyOffice container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.6                    # Static IP address assigned to this container
+    environment:
+      - TZ=Etc/UTC                                  # Time zone setting for the container
+    volumes:
+      - ./data/onlyoffice:/config                   # Persistent storage for OnlyOffice configuration
+    ports:
+      - 8803:3000                                   # Map port 3000 to port 8803 on the host
+      - 8804:3001                                   # Map port 3001 to port 8804 on the host
+    shm_size: "1gb"                                 # Set shared memory size
+    restart: unless-stopped                         # Restart policy for the container
+
+##################################################################
+##  
+##      _         _   _  __ _      _       _ 
+##     / \   _ __| |_(_)/ _(_) ___(_) __ _| |
+##    / _ \ | '__| __| | |_| |/ __| |/ _` | |
+##   / ___ \| |  | |_| |  _| | (__| | (_| | |
+##  /_/   \_\_|   \__|_|_| |_|\___|_|\__,_|_|
+##                                           
+##   ___       _       _ _ _                           
+##  |_ _|_ __ | |_ ___| | (_) __ _  ___ _ __   ___ ___ 
+##   | || '_ \| __/ _ \ | | |/ _` |/ _ \ '_ \ / __/ _ \
+##   | || | | | ||  __/ | | | (_| |  __/ | | | (_|  __/
+##  |___|_| |_|\__\___|_|_|_|\__, |\___|_| |_|\___\___|
+##                           |___/                     
+##  
+##################################################################
+
+  ollama:
+    volumes:
+      - ./data/ollama:/root/.ollama                 # Persistent storage for Ollama
+    container_name: ollama                          # Name of the Ollama container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.7                    # Static IP address assigned to this container
+    pull_policy: always                             # Always pull the latest image
+    tty: true                                       # Allocate a pseudo-TTY
+    restart: unless-stopped                         # Restart policy for the container
+    image: ollama/ollama:latest                     # Image for Ollama
+    ports:
+      - 11434:11434                                 # Map port 11434 on host to container
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main       # Image for the Open Web UI
+    container_name: open-webui                      # Name of the Open Web UI container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.8                    # Static IP address assigned to this container
+    volumes:
+      - ./data/open-webui:/app/backend/data         # Persistent storage for Open Web UI data
+    depends_on:
+      - ollama                                      # Dependency on the Ollama service
+    ports:
+      - 8805:8080                                   # Map port 8080 on the host to port 8001
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama:11434'       # Base URL for Ollama service
+      - 'WEBUI_SECRET_KEY='                         # Secret key for the web UI (to be set)
+    extra_hosts:
+      - host.docker.internal:host-gateway           # Access host services from the container
+    restart: unless-stopped                         # Restart policy for the container
+
+##################################################################
+##
+##   ____            _     _                         _ 
+##  |  _ \  __ _ ___| |__ | |__   ___   __ _ _ __ __| |
+##  | | | |/ _` / __| '_ \| '_ \ / _ \ / _` | '__/ _` |
+##  | |_| | (_| \__ \ | | | |_) | (_) | (_| | | | (_| |
+##  |____/ \__,_|___/_| |_|_.__/ \___/ \__,_|_|  \__,_|
+##                                                     
+##
+##################################################################  
+
+  dashy:
+    image: lissy93/dashy                            # Image for Dashy
+    container_name: Dashy                           # Name of the Dashy container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.9                    # Static IP address assigned to this container
+    # Pass in your config file below, by specifying the path on your host machine
+    volumes:
+      - ./config/dashy-config.yml:/app/user-data/conf.yml
+    ports:
+      - 8806:8080
+    # Set any environmental variables
+    environment:
+      - NODE_ENV=production
+    # Specify your user ID and group ID. You can find this by running `id -u` and `id -g`
+    #  - UID=1000
+    #  - GID=1000
+    # Specify restart policy
+    restart: unless-stopped
+
+##################################################################
+##
+##      _             _     _                                  _ 
+##     / \   _ __ ___| |__ (_)_   _____  ___    __ _ _ __   __| |
+##    / _ \ | '__/ __| '_ \| \ \ / / _ \/ __|  / _` | '_ \ / _` |
+##   / ___ \| | | (__| | | | |\ V /  __/\__ \ | (_| | | | | (_| |
+##  /_/   \_\_|  \___|_| |_|_| \_/ \___||___/  \__,_|_| |_|\__,_|
+##                                                               
+##   __  __ _          
+##  |  \/  (_)___  ___ 
+##  | |\/| | / __|/ __|
+##  | |  | | \__ \ (__ 
+##  |_|  |_|_|___/\___|
+##  
+##
+##################################################################
+
+  kiwix-serve:
+    ports:
+      - 8807:8080                                   # Map port 8080 on the host to port 8081
+    image: ghcr.io/kiwix/kiwix-serve:latest         # Image for Kiwix Serve
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.10                    # Static IP address assigned to this container
+    volumes:
+      - ./data/zims:/data                           # Persistent storage for ZIM files
+    command:
+      - '*.zim'                                     # Command to serve ZIM files
+      # Uncomment next 2 lines to use it with a remote ZIM file
+      # environment:
+      #   - 'DOWNLOAD=https://download.kiwix.org/zim/wikipedia_bm
+  
+  lubelogger:
+    image: ghcr.io/hargata/lubelogger:latest        # Image for Lubelogger service
+    restart: unless-stopped                         # Restart policy for the container
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.11                    # Static IP address assigned to this container
+    # Volumes used to keep data persistent
+    volumes:
+      - ./data/lubelogger/data:/App/data            # Persistent storage for application data
+      - ./data/lubelogger/keys:/root/.aspnet/DataProtection-Keys # Persistent storage for security keys
+    # Expose port and/or use serving via Traefik
+    ports:
+      - 8808:8080                                   # Map port 8080 on the container to port 8034 on the host
+
+  stirling-pdf:
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest # Image for Stirling PDF service
+    ports:
+      - '8809:8080'                                 # Map port 8080 on the container to port 8107 on the host
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.12                    # Static IP address assigned to this container
+    volumes:
+      - ./data/sterlingpdf/trainingData:/usr/share/tessdata  # Required for extra OCR languages
+      - ./data/sterlingpdf/extraConfigs:/configs    # Configuration files for the service
+      - ./data/sterlingpdf/customFiles:/customFiles/ # Directory for custom files
+      - ./data/sterlingpdf/logs:/logs/              # Directory for logs
+      - ./data/sterlingpdf/pipeline:/pipeline/      # Directory for pipeline configurations
+    environment:
+      - DISABLE_ADDITIONAL_FEATURES=false           # Toggle additional features
+      - LANGS=en_GB                                 # Language configuration for the service
+
+  
+# Usage:
+#     mkdir -p ~/archivebox/data && cd ~/archivebox
+#     curl -fsSL 'https://docker-compose.archivebox.io' > docker-compose.yml
+#     docker compose run archivebox version
+#     docker compose run archivebox config --set SAVE_ARCHIVE_DOT_ORG=False
+#     docker compose run archivebox add --depth=1 'https://news.ycombinator.com'
+#     docker compose run -T archivebox add < bookmarks.txt
+#     docker compose up -d && open 'https://localhost:8000'
+#     docker compose run archivebox help
+# Documentation:
+#     https://github.com/ArchiveBox/ArchiveBox/wiki/Docker#docker-compose
+
+
+  archivebox:
+    image: archivebox/archivebox:latest
+    ports:
+        - 8810:8000
+    volumes:
+      - ./data/archivebox/data:/data
+      # ./data/personas/Default/chrome_profile/Default:/data/personas/Default/chrome_profile/Default
+    environment:
+      - ADMIN_USERNAME=admin            # creates an admin user on first run with the given user/pass combo
+      - ADMIN_PASSWORD=changeme
+      - ALLOWED_HOSTS=*                   # set this to the hostname(s) you're going to serve the site from!
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8089  # you MUST set this to the server's URL for admin login and the REST API to work
+      - PUBLIC_INDEX=True                 # set to False to prevent anonymous users from viewing snapshot list
+      - PUBLIC_SNAPSHOTS=True             # set to False to prevent anonymous users from viewing snapshot content
+      - PUBLIC_ADD_VIEW=False             # set to True to allow anonymous users to submit new URLs to archive
+      - SEARCH_BACKEND_ENGINE=sonic       # tells ArchiveBox to use sonic container below for fast full-text search
+      - SEARCH_BACKEND_HOST_NAME=sonic
+      - SEARCH_BACKEND_PASSWORD=27ad57a46139aeedae2d73a5ad4502ae
+      # - PUID=911                        # set to your host user's UID & GID if you encounter permissions issues
+      # - PGID=911                        # UID/GIDs lower than 500 may clash with system uids and are not recommended
+      # For options below, it's better to set in data/ArchiveBox.conf or use `docker compose run archivebox config --set SOME_KEY=someval` instead of setting here:
+      # - MEDIA_MAX_SIZE=750m             # increase this filesize limit to allow archiving larger audio/video files
+      # - TIMEOUT=60                      # increase this number to 120+ seconds if you see many slow downloads timing out
+      # - CHECK_SSL_VALIDITY=True         # set to False to disable strict SSL checking (allows saving URLs w/ broken certs)
+      # - SAVE_ARCHIVE_DOT_ORG=True       # set to False to disable submitting all URLs to Archive.org when archiving
+      # - USER_AGENT="..."                # set a custom USER_AGENT to avoid being blocked as a bot
+      # ...
+      # For more info, see: https://github.com/ArchiveBox/ArchiveBox/wiki/Docker#configuration
+      
+      # For ad-blocking during archiving, uncomment this section and the pihole service below
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.13
+    # dns:
+    #   - 172.1.0.53
+
+
+    ######## Optional Addons: tweak examples below as needed for your specific use case ########
+
+    ### This optional container runs scheduled jobs in the background (and retries failed ones). To add a new job:
+    #   $ docker compose run archivebox schedule --add --every=day --depth=1 'https://example.com/some/rss/feed.xml'
+    # then restart the scheduler container to apply any changes to the scheduled task list:
+    #   $ docker compose restart archivebox_scheduler
+    # https://github.com/ArchiveBox/ArchiveBox/wiki/Scheduled-Archiving
+
+  archivebox_scheduler:
+    image: archivebox/archivebox:latest
+    command: schedule --foreground --update --every=day
+    environment:
+      # - PUID=911                        # set to your host user's UID & GID if you encounter permissions issues
+      # - PGID=911
+      - TIMEOUT=120                       # use a higher timeout than the main container to give slow tasks more time when retrying
+      - SEARCH_BACKEND_ENGINE=sonic       # tells ArchiveBox to use sonic container below for fast full-text search
+      - SEARCH_BACKEND_HOST_NAME=sonic
+      - SEARCH_BACKEND_PASSWORD=27ad57a46139aeedae2d73a5ad4502ae
+      # For other config it's better to set using `docker compose run archivebox config --set SOME_KEY=someval` instead of setting here
+      # ...
+      # For more info, see: https://github.com/ArchiveBox/ArchiveBox/wiki/Docker#configuration
+    volumes:
+      - ./data/archivebox/data:/data
+    # cpus: 2                               # uncomment / edit these values to limit scheduler container resource consumption
+    # mem_limit: 2048m
+    # restart: always
+
+
+    ### This runs the optional Sonic full-text search backend (much faster than default rg backend).
+    # If Sonic is ever started after not running for a while, update its full-text index by running:
+    #   $ docker-compose run archivebox update --index-only
+    # https://github.com/ArchiveBox/ArchiveBox/wiki/Setting-up-Search
+
+  sonic:
+    image: archivebox/sonic:latest
+    expose:
+        - 1491
+    environment:
+        - SEARCH_BACKEND_PASSWORD=27ad57a46139aeedae2d73a5ad4502ae
+    volumes:
+        #- ./sonic.cfg:/etc/sonic.cfg:ro    # mount to customize: https://raw.githubusercontent.com/ArchiveBox/ArchiveBox/stable/etc/sonic.cfg
+        - ./data/archivebox/sonic:/var/lib/sonic/store
+
+    ### Example: Run ChangeDetection.io to watch for changes to websites, then trigger ArchiveBox to archive them
+    # Documentation: https://github.com/dgtlmoon/changedetection.io
+    # More info: https://github.com/dgtlmoon/changedetection.io/blob/master/docker-compose.yml
+
+    # changedetection:
+    #     image: ghcr.io/dgtlmoon/changedetection.io
+    #     volumes:
+    #         - ./data-changedetection:/datastore
+
+
+    ### Example: Run PYWB in parallel and auto-import WARCs from ArchiveBox
+
+    # pywb:
+    #     image: webrecorder/pywb:latest
+    #     entrypoint: /bin/sh -c '(wb-manager init default || test $$? -eq 2) && wb-manager add default /archivebox/archive/*/warc/*.warc.gz; wayback;'
+    #     environment:
+    #         - INIT_COLLECTION=archivebox
+    #     ports:
+    #         - 8686:8080
+    #     volumes:
+    #         - ./data:/archivebox
+    #         - ./data/wayback:/webarchive
+
+  libretranslate:
+    container_name: libretranslate
+    image: libretranslate/libretranslate:latest
+    networks:
+      service_network:
+        ipv4_address: 172.1.0.15
+    ports:
+      - "8811:5000"
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', './venv/bin/python scripts/healthcheck.py']
+      interval: 10s
+      timeout: 4s
+      retries: 4
+      start_period: 5s
+    ## Uncomment this for logging in docker compose logs
+    # tty: true
+    ## Uncomment above command and define your args if necessary
+    # command: --ssl --ga-id MY-GA-ID --req-limit 100 --char-limit 500
+    ## Uncomment this section and the libretranslate_api_keys volume if you want to backup your API keys
+    # environment:
+    #   - LT_API_KEYS=true
+    #   - LT_API_KEYS_DB_PATH=/app/db/api_keys.db # Same result as `db/api_keys.db` or `./db/api_keys.db`
+    ## Uncomment these vars and libretranslate_models volume to optimize loading time.
+    #   - LT_UPDATE_MODELS=true
+    #   - LT_LOAD_ONLY=en,fr
+    # volumes:
+    #   - libretranslate_api_keys:/app/db
+    # Keep the models in a docker volume, to avoid re-downloading on startup
+    #   - libretranslate_models:/home/libretranslate/.local:rw
+
+
+##################################################################
+##  
+##   __  __                                   _ 
+##  |  \/  | __ _ _ __  ___    __ _ _ __   __| |
+##  | |\/| |/ _` | '_ \/ __|  / _` | '_ \ / _` |
+##  | |  | | (_| | |_) \__ \ | (_| | | | | (_| |
+##  |_|  |_|\__,_| .__/|___/  \__,_|_| |_|\__,_|
+##               |_|                            
+##   _   _             _             _   _             
+##  | \ | | __ ___   _(_) __ _  __ _| |_(_) ___  _ __  
+##  |  \| |/ _` \ \ / / |/ _` |/ _` | __| |/ _ \| '_ \ 
+##  | |\  | (_| |\ V /| | (_| | (_| | |_| | (_) | | | |
+##  |_| \_|\__,_| \_/ |_|\__, |\__,_|\__|_|\___/|_| |_|
+##                       |___/                         
+##  
+##################################################################
+
+#   tileserver-init:
+#     image: ghcr.io/headwaymaps/tileserver-init:latest
+#     env_file: .env
+#     environment:
+#       AREAMAP_ARTIFACT_DEST: /data/${HEADWAY_AREA}.mbtiles
+#       AREAMAP_ARTIFACT_SOURCE: /bootstrap/${HEADWAY_AREA}.mbtiles
+#       TERRAIN_ARTIFACT_DEST: /data/terrain.mbtiles
+#       TERRAIN_ARTIFACT_SOURCE: /bootstrap/terrain.mbtiles
+#       LANDCOVER_ARTIFACT_DEST: /data/landcover.mbtiles
+#       LANDCOVER_ARTIFACT_SOURCE: /bootstrap/landcover.mbtiles
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "tileserver_data:/data/:rw"
+#   tileserver:
+#     image: ghcr.io/headwaymaps/tileserver:latest
+#     restart: always
+#     env_file: .env
+#     environment:
+#       PORT: 8000
+#     volumes:
+#       - "tileserver_data:/data/:ro"
+#     depends_on:
+#       tileserver-init:
+#         condition: service_completed_successfully
+#     expose:
+#       - "8000"
+#     networks:
+#       - tileserver_frontend
+#   travelmux-init:
+#     image: ghcr.io/headwaymaps/travelmux-init:latest
+#     env_file: .env
+#     environment:
+#       TRAVELMUX_ELEVATION_ARTIFACT_SOURCE_PATH: /bootstrap/transit/${HEADWAY_AREA}.elevation-tifs.tar.zst
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "travelmux_data:/data/:rw"
+#   travelmux:
+#     image: ghcr.io/headwaymaps/travelmux:latest
+#     restart: always
+#     env_file: .env
+#     environment:
+#       ELEVATION_TIFS_DIR: /data/elevation-tifs
+#     depends_on:
+#       travelmux-init:
+#         condition: service_completed_successfully
+#     networks:
+#       - travel_frontend
+#       - valhalla_backend
+#     volumes:
+#       - "travelmux_data:/data/:ro"
+#     command: ["http://valhalla:8002"]
+#   valhalla-init:
+#     image: ghcr.io/headwaymaps/valhalla-init:latest
+#     env_file: .env
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "valhalla_data:/data/:rw"
+#     environment:
+#       VALHALLA_ARTIFACT_SOURCE_PATH: /bootstrap/${HEADWAY_AREA}.valhalla.tar.zst
+#     ulimits:
+#       nofile:
+#         soft: 8192
+#         hard: 8192
+#   valhalla:
+#     image: ghcr.io/headwaymaps/valhalla:latest
+#     restart: always
+#     env_file: .env
+#     networks:
+#       - valhalla_backend
+#     volumes:
+#       - "valhalla_data:/data/:ro"
+#     ulimits:
+#       nofile:
+#         soft: 8192
+#         hard: 8192
+#     depends_on:
+#       valhalla-init:
+#         condition: service_completed_successfully
+#     # ports:
+#     #   - "9002:8002"
+#   frontend-init:
+#     image: ghcr.io/headwaymaps/headway-init:latest
+#     env_file: .env
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "frontend_data:/data/:rw"
+#   frontend:
+#     image: ghcr.io/headwaymaps/headway:latest
+#     restart: always
+#     env_file: .env
+#     environment:
+#       HEADWAY_RESOLVER: 127.0.0.11
+#       HEADWAY_PELIAS_URL: http://pelias-api:4000
+#       HEADWAY_TILESERVER_URL: http://tileserver:8000
+#       HEADWAY_TRAVELMUX_URL: http://travelmux:8000
+#       HEADWAY_VALHALLA_URL: http://valhalla:8002
+#     ports:
+#       - "8080:8080"
+#     networks:
+#       - pelias_frontend
+#       - tileserver_frontend
+#       - travel_frontend
+#       - valhalla_backend
+#     volumes:
+#       - "frontend_data:/data/:ro"
+#     depends_on:
+#       - "pelias-api"
+#       - "tileserver"
+#       - "travelmux"
+#       - "valhalla"
+#   pelias-config-init:
+#     image: ghcr.io/headwaymaps/pelias-init:latest
+#     env_file: .env
+#     environment:
+#       PELIAS_CONFIG_ARTIFACT_SOURCE_PATH: /bootstrap/${HEADWAY_AREA}.pelias.json
+#     command: [ "/bin/bash", "/app/init_config.sh" ]
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "pelias_config_data:/config"
+#   pelias-elasticsearch-init:
+#     image: ghcr.io/headwaymaps/pelias-init:latest
+#     env_file: .env
+#     environment:
+#       ELASTICSEARCH_ARTIFACT_SOURCE_PATH: /bootstrap/${HEADWAY_AREA}.elasticsearch.tar.zst
+#     command: [ "/bin/bash", "/app/init_elastic.sh" ]
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "pelias_elasticsearch_data:/usr/share/elasticsearch/data"
+#   pelias-placeholder-init:
+#     image: ghcr.io/headwaymaps/pelias-init:latest
+#     env_file: .env
+#     environment:
+#       PLACEHOLDER_ARTIFACT_SOURCE_PATH: /bootstrap/${HEADWAY_AREA}.placeholder.tar.zst
+#     command: [ "/bin/bash", "/app/init_placeholder.sh" ]
+#     volumes:
+#       - "./data/${HEADWAY_AREA}/:/bootstrap/:ro"
+#       - "pelias_placeholder_data:/data/placeholder"
+#   pelias-libpostal:
+#     image: pelias/libpostal-service
+#     restart: always
+#     networks:
+#       - pelias_backend
+#   pelias-api:
+#     image: pelias/api:master
+#     restart: always
+#     environment:
+#       PORT: 4000
+#       PELIAS_CONFIG: /config/pelias.json
+#     networks:
+#       - pelias_backend
+#       - pelias_frontend
+#     volumes:
+#       - "pelias_config_data:/config:ro"
+#     depends_on:
+#       pelias-elasticsearch:
+#         condition: service_healthy
+#       pelias-config-init:
+#         condition: service_completed_successfully
+#   pelias-placeholder:
+#     image: pelias/placeholder:master
+#     restart: always
+#     environment:
+#       PORT: 4100
+#     networks:
+#       - pelias_backend
+#     volumes:
+#       - "pelias_config_data:/config:ro"
+#       - "pelias_placeholder_data:/data/placeholder"
+#     depends_on:
+#       pelias-config-init:
+#         condition: service_completed_successfully
+#       pelias-placeholder-init:
+#         condition: service_completed_successfully
+#   pelias-elasticsearch:
+#     image: pelias/elasticsearch:8.12.2-beta
+#     restart: always
+#     networks:
+#       - pelias_backend
+#     volumes:
+#       - "pelias_elasticsearch_data:/usr/share/elasticsearch/data"
+#     ulimits:
+#       memlock:
+#         soft: -1
+#         hard: -1
+#       nofile:
+#         soft: 65536
+#         hard: 65536
+#     cap_add: [ "IPC_LOCK" ]
+#     depends_on:
+#       pelias-elasticsearch-init:
+#         condition: service_completed_successfully
+#       pelias-config-init:
+#         condition: service_completed_successfully
+#     healthcheck:
+#       test: nc -z localhost 9200
+#       interval: 5s
+#       start_period: 60s
+  
+# volumes:
+#   pelias_config_data:
+#   pelias_placeholder_data:
+#   pelias_elasticsearch_data:
+#   tileserver_data:
+#   valhalla_data:
+#   travelmux_data:
+#   frontend_data:

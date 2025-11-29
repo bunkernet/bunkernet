@@ -1,0 +1,78 @@
+pageInfo:
+  title: Bunkernet
+sections:
+  - name: Files and Media
+    icon: far fa-rocket
+    items:
+      - title: Nextcloud
+        description: Cloud storage
+        url: http://localhost:8802/
+        id: 0_1350_nextcloud
+      - title: OnlyOffice
+        description: Office file editor
+        url: http://localhost:8803/
+        id: 1_1350_onlyoffice
+      - title: SterlingPDF
+        description: PDF editor
+        url: http://localhost:8809/
+        id: 2_1350_sterlingpdf
+      - title: LubeLogger
+        description: Vehicle record keeping
+        url: http://localhost:8808
+        id: 3_1350_lubelogger
+  - name: Internet Archives
+    displayData:
+      sortBy: default
+      rows: 1
+      cols: 1
+      collapsed: false
+      hideForGuests: false
+    items:
+      - title: Kiwix
+        description: Browse internet archives
+        url: http://localhost:8807
+        id: 0_1694_kiwix
+      - title: Archive Box
+        description: Archive any website
+        url: http://localhost:8810
+        id: 1_1694_archivebox
+  - name: General Services
+    displayData:
+      sortBy: default
+      rows: 1
+      cols: 1
+      collapsed: false
+      hideForGuests: false
+    items:
+      - title: AI Chat
+        description: Build and chat with AI
+        url: http://localhost:8805
+        id: 0_1570_aichat
+      - title: Translate
+        description: Translate between languages
+        url: http://localhost:8811
+        id: 1_1570_translate
+  - name: Server Management
+    displayData:
+      sortBy: default
+      rows: 1
+      cols: 1
+      collapsed: false
+      hideForGuests: false
+    items:
+      - title: PiHole
+        description: DNS and DHCP server
+        url: http://localhost:8853
+        id: 0_1684_pihole
+      - title: Nginx Proxy Manager
+        description: Reverse proxy management
+        url: http://localhost:8801
+        id: 1_1684_nginxproxymanager
+      - title: Portainer
+        description: Docker container management
+        url: http://localhost:9443
+        id: 2_1684_portainer
+appConfig:
+  layout: auto
+  iconSize: large
+  theme: argon

@@ -6,19 +6,19 @@ sections:
     items:
       - title: Nextcloud
         description: Cloud storage
-        url: http://localhost:8802/
+        url: http://nextcloud.bunker.local
         id: 0_1350_nextcloud
       - title: OnlyOffice
         description: Office file editor
-        url: http://localhost:8803/
+        url: http://onlyoffice.bunker.local
         id: 1_1350_onlyoffice
       - title: SterlingPDF
         description: PDF editor
-        url: http://localhost:8809/
+        url: http://pdfs.bunker.local
         id: 2_1350_sterlingpdf
       - title: LubeLogger
         description: Vehicle record keeping
-        url: http://localhost:8808
+        url: http://vehicles.bunker.local
         id: 3_1350_lubelogger
   - name: Internet Archives
     displayData:
@@ -30,11 +30,11 @@ sections:
     items:
       - title: Kiwix
         description: Browse internet archives
-        url: http://localhost:8807
+        url: http://library.bunker.local
         id: 0_1694_kiwix
       - title: Archive Box
         description: Archive any website
-        url: http://localhost:8810
+        url: http://archive.bunker.local
         id: 1_1694_archivebox
   - name: General Services
     displayData:
@@ -46,11 +46,11 @@ sections:
     items:
       - title: AI Chat
         description: Build and chat with AI
-        url: http://localhost:8805
+        url: http://ai.bunker.local
         id: 0_1570_aichat
       - title: Translate
         description: Translate between languages
-        url: http://localhost:8811
+        url: http://translate.bunker.local
         id: 1_1570_translate
   - name: Server Management
     displayData:
@@ -62,15 +62,15 @@ sections:
     items:
       - title: PiHole
         description: DNS and DHCP server
-        url: http://localhost:8853
+        url: http://dns.bunker.local
         id: 0_1684_pihole
       - title: Nginx Proxy Manager
         description: Reverse proxy management
-        url: http://localhost:8801
+        url: http://proxy.bunker.local
         id: 1_1684_nginxproxymanager
       - title: Portainer
         description: Docker container management
-        url: http://localhost:9443
+        url: http://192.168.2.1:9443
         id: 2_1684_portainer
 appConfig:
   layout: auto

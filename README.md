@@ -1,13 +1,13 @@
 # Bunkernet
 
-This project is not fancy or impressive in any way. It is just a bunch of configurations to set up a local internet (intranet) using several free open source projects by awesome people who made awesome stuff. The goal is to easily turn a mini PC, or similar machine, into a WiFi hotspot running a suite of web services you'll want if you lose, or already don't have, access to the internet where the bunkernet box will run.
+This project is not fancy or impressive in any way. It is just a bunch of configurations to set up a local internet (intranet) using several free open source projects by awesome people who made awesome stuff. The goal is to easily turn nearly any computer into a WiFi hotspot running a suite of web services and hosting internet content you'll want if you lose, or already don't have, access to the internet. It also includes features for making archives of whatever you want from the internet, should you choose to connect the bunkernet box to the internet again.
 
 ## Why not just use IIAB?
 This project is similar to IIAB (https://github.com/iiab/iiab) with a few specific differences.
 - IIAB is designed for running on a raspberry pi.
   - Bunkernet can run on anything debian can (which is pretty much everything)
 - IIAB isn't very customizable. You can't easily add new services and bookmark them on the dashboard.
-    - Bunkernet uses portainer and dashy, so that anyone who knows what they're doing can easily host new services and add them to the dashboard.
+    - Bunkernet uses portainer and dashy, so that anyone who remotely knows what they're doing can easily host new services and add them to the dashboard without getting to know any codebase.
 
 IIAB is a great project and I love that it exists, but when using it I felt restricted by what I could run it on and how I could customize it, which ultimately comes down to the fact that it was never designed for the use cases I had. Thus, bunkernet.
 
@@ -29,6 +29,8 @@ Terms:
 - **AI**
     - [Open Web UI](https://openwebui.com/) (Robust AI interface)
     - [Ollama](https://ollama.com/) (AI server)
+- **Maps and Navigation**
+    - Headway (coming soon)
 - **Misc tools**
     - [LubeLogger](https://lubelogger.com/) (vehicle records management)
     - [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate/) (translate between different langauges)
@@ -54,11 +56,11 @@ Nothing is being tracked and sent to anyone. You can use all of these services c
 
 ## Internal Network and Port Mapping
 
-Network mask: 172.1.0.0/16
+Docker network mask: 172.1.0.0/16
 
 | **Application**            | **IP**        | **Port(s)**                |
 |----------------------------|---------------|----------------------------|
-| pihole                     | 172.1.0.53    | 53, 8853 (admin port)      |
+| pihole                     | 172.1.0.53    | 53, 8800 (admin port)      |
 | Nginx Proxy Manager        | 172.1.0.80    | 80, 443, 8801 (admin port) |
 | Portainer                  | 172.1.0.2     | 9443                       |
 | NextCloud                  | 172.1.0.3     | 8802                       |
@@ -74,3 +76,11 @@ Network mask: 172.1.0.0/16
 | Archivebox                 | 172.1.0.13    | 8810                       |
 | Sonic (for archive box)    | 172.1.0.14    | 1491                       |
 | Libre Translate            | 172.1.0.15    | 8811                       |
+
+## Wifi Network Information
+
+- SSID: Bunkernet
+- Default password: bunkernet
+- Gateway address: 192.168.2.1
+- IP range: 192.168.2.2 through 192.168.2.100
+- Netmask: 255.255.255.0

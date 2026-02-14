@@ -272,8 +272,8 @@ services:
     command:
       - '*.zim'                                     # Command to serve ZIM files
       # Uncomment next 2 lines to use it with a remote ZIM file
-      - environment:
-        - 'DOWNLOAD=https://download.kiwix.org/zim/wikipedia_en_all_maxi_2025-08.zim'
+    environment:
+      - 'DOWNLOAD=https://download.kiwix.org/zim/wikipedia_en_all_maxi_2025-08.zim'
 
   lubelogger:
     image: ghcr.io/hargata/lubelogger:latest        # Image for Lubelogger service
